@@ -1,2 +1,2 @@
 # scientific-calculator
-A project for making a calculator
+A replica of google's scientific calculator
