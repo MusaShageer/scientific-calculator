@@ -1,112 +1,187 @@
-document.getElementById('convertButton').addEventListener('click', function() {
-    // Step 1: Retrieve the input value and ensure it's a valid number
-    const inputValue = parseFloat(document.getElementById('inputValue').value);
-    
-    // If input is not a number, alert the user and stop the function
-    if (isNaN(inputValue) || inputValue === "") {
-        alert("Please enter a valid number.");
+const unitTypeSelect = document.getElementById("unitType");
+const inputUnit = document.getElementById("inputUnit");
+const outputUnit = document.getElementById("outputUnit");
+const inputValue = document.getElementById("inputValue");
+const outputValue = document.getElementById("outputValue");
+const convertButton = document.getElementById("convertButton");
+const swapButton = document.getElementById("swapButton");
+
+// Unit definitions and conversion to base units
+const unitData = {
+    length: {
+        base: "meter",
+        units: {
+            kilometer: 1000,
+            meter: 1,
+            centimeter: 0.01,
+            micrometer: 1e-6,
+            nanometer: 1e-9,
+            inch: 0.0254,
+            foot: 0.3048,
+            yard: 0.9144,
+            mile: 1609.344,
+            nauticalmile: 1852,
+        }
+    },
+    area: {
+        base: "squaremeter",
+        units: {
+            squarekilometer: 1e6,
+            squaremeter: 1,
+            squarecentimeter: 0.0001,
+            squaremillimeter: 0.000001,
+            hectare: 10000,
+            acre: 4046.8564224,
+            squaremile: 2.59e6,
+            squareyard: 0.836127,
+            squarefoot: 0.092903,
+            squareinch: 0.00064516,
+        }
+    },
+    temperature: {
+        units: {
+            celsius: {
+                toKelvin: val => val + 273.15,
+                fromKelvin: val => val - 273.15
+            },
+            fahrenheit: {
+                toKelvin: val => (val - 32) * 5/9 + 273.15,
+                fromKelvin: val => (val - 273.15) * 9/5 + 32
+            },
+            kelvin: {
+                toKelvin: val => val,
+                fromKelvin: val => val
+            }
+        }
+    },
+    weight: {
+        base: "kilogram",
+        units: {
+            kilogram: 1,
+            gram: 0.001,
+            milligram: 1e-6,
+            microgram: 1e-9,
+            ton: 1000,
+            pound: 0.453592,
+            ounce: 0.0283495,
+            stone: 6.35029,
+        }
+    }
+};
+
+// Populate units in dropdowns
+function populateUnits(unitType) {
+    inputUnit.innerHTML = "";
+    outputUnit.innerHTML = "";
+
+    const units = unitType === "temperature"
+        ? Object.keys(unitData[unitType].units)
+        : Object.keys(unitData[unitType].units);
+
+    for (const unit of units) {
+        const option1 = document.createElement("option");
+        const option2 = document.createElement("option");
+        option1.value = unit;
+        option2.value = unit;
+        option1.textContent = capitalize(unit);
+        option2.textContent = capitalize(unit);
+        inputUnit.appendChild(option1);
+        outputUnit.appendChild(option2);
+    }
+
+    // Default selection
+    inputUnit.selectedIndex = 0;
+    outputUnit.selectedIndex = 1;
+}
+
+function capitalize(word) {
+    return word.replace(/([a-z])([A-Z])/g, "$1 $2") // camelCase to space
+               .replace(/^./, str => str.toUpperCase());
+}
+
+// Conversion logic dispatcher
+function convertValue(value, from, to, type) {
+    if (type === "temperature") {
+        const kelvin = unitData.temperature.units[from].toKelvin(value);
+        return unitData.temperature.units[to].fromKelvin(kelvin);
+    } else {
+        const unitMap = unitData[type].units;
+        const baseValue = value * unitMap[from];
+        return baseValue / unitMap[to];
+    }
+}
+
+// Handle Convert button click
+convertButton.addEventListener("click", () => {
+    const unitType = unitTypeSelect.value;
+    const from = inputUnit.value;
+    const to = outputUnit.value;
+    const value = parseFloat(inputValue.value);
+
+    if (isNaN(value)) {
+        outputValue.value = "Enter a valid number";
         return;
     }
-    
-    // Step 2: Identify the selected units for conversion
-    const inputUnit = document.getElementById('inputUnit').value;
-    const outputUnit = document.getElementById('outputUnit').value;
 
-    // Step 3: Define the conversion rates between units
-    const conversions = {
-        meters: {
-            meters: 1,
-            kilometers: 0.001,
-            miles: 0.000621371,
-            feet: 3.28084,
-            inches: 39.3701,
-            centimeters: 100,
-            millimeters: 1000,
-            yards: 1.09361
-        },
-        kilometers: {
-            meters: 1000,
-            kilometers: 1,
-            miles: 0.621371,
-            feet: 3280.84,
-            inches: 39370.1,
-            centimeters: 100000,
-            millimeters: 1000000,
-            yards: 1093.61
-        },
-        miles: {
-            meters: 1609.34,
-            kilometers: 1.60934,
-            miles: 1,
-            feet: 5280,
-            inches: 63360,
-            centimeters: 160934,
-            millimeters: 1609340,
-            yards: 1760
-        },
-        feet: {
-            meters: 0.3048,
-            kilometers: 0.0003048,
-            miles: 0.000189394,
-            feet: 1,
-            inches: 12,
-            centimeters: 30.48,
-            millimeters: 304.8,
-            yards: 0.333333
-        },
-        inches: {
-            meters: 0.0254,
-            kilometers: 0.0000254,
-            miles: 0.0000157828,
-            feet: 0.0833333,
-            inches: 1,
-            centimeters: 2.54,
-            millimeters: 25.4,
-            yards: 0.0277778
-        },
-        centimeters: {
-            meters: 0.01,
-            kilometers: 0.00001,
-            miles: 0.00000621371,
-            feet: 0.0328084,
-            inches: 0.393701,
-            centimeters: 1,
-            millimeters: 10,
-            yards: 0.0109361
-        },
-        millimeters: {
-            meters: 0.001,
-            kilometers: 0.000001,
-            miles: 0.000000621371,
-            feet: 0.00328084,
-            inches: 0.0393701,
-            centimeters: 0.1,
-            millimeters: 1,
-            yards: 0.00109361
-        },
-        yards: {
-            meters: 0.9144,
-            kilometers: 0.0009144,
-            miles: 0.000568182,
-            feet: 3,
-            inches: 36,
-            centimeters: 91.44,
-            millimeters: 914.4,
-            yards: 1
-        }
-    };
-
-    // Step 4: Perform the conversion using the selected units and conversion rates
-    let convertedValue = (inputValue * conversions[inputUnit][outputUnit]).toFixed(2);
-    
-    // Step 5: Display the converted value in the output field
-    document.getElementById('outputValue').value = convertedValue;
+    const result = convertValue(value, from, to, unitType);
+    outputValue.value = result.toLocaleString(undefined, { maximumFractionDigits: 10 });
 });
 
-document.getElementById('swapButton').addEventListener('click', function() {
-    // Swap the selected input and output units
-    let inputUnit = document.getElementById('inputUnit').value;
-    let outputUnit = document.getElementById('outputUnit').value;
-    document.getElementById('inputUnit').value = outputUnit;
-    document.getElementById('outputUnit').value = inputUnit;
+// Handle Swap button
+swapButton.addEventListener("click", () => {
+    const temp = inputUnit.value;
+    inputUnit.value = outputUnit.value;
+    outputUnit.value = temp;
+    convertButton.click();
 });
+
+// Handle unit type change
+unitTypeSelect.addEventListener("change", () => {
+    populateUnits(unitTypeSelect.value);
+    outputValue.value = "";
+    inputValue.value = "";
+});
+
+// Initial load
+populateUnits("length");
+inputUnit.addEventListener("change", () => {
+    outputValue.value = "";
+});
+
+outputUnit.addEventListener("change", () => {
+    outputValue.value = "";
+});
+
+// Add a space after "square" for area units in dropdowns
+function prettifyUnit(unit, type) {
+    if (type === "area" && unit.startsWith("square")) {
+        return "Square " + capitalize(unit.slice(6));
+    }
+    return capitalize(unit);
+}
+
+// Override populateUnits to use prettifyUnit for area
+const originalPopulateUnits = populateUnits;
+populateUnits = function(unitType) {
+    inputUnit.innerHTML = "";
+    outputUnit.innerHTML = "";
+
+    const units = Object.keys(unitData[unitType].units);
+
+    for (const unit of units) {
+        const option1 = document.createElement("option");
+        const option2 = document.createElement("option");
+        option1.value = unit;
+        option2.value = unit;
+        option1.textContent = prettifyUnit(unit, unitType);
+        option2.textContent = prettifyUnit(unit, unitType);
+        inputUnit.appendChild(option1);
+        outputUnit.appendChild(option2);
+    }
+
+    inputUnit.selectedIndex = 0;
+    outputUnit.selectedIndex = 1;
+};
+
+// Re-populate units on initial load to apply prettify
+populateUnits(unitTypeSelect.value);
